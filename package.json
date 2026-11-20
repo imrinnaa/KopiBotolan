@@ -15,8 +15,10 @@
   "author": "Rina Anggraeni - XI PPLG 1",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^13.2.0",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^13.2.0"
   }
 }

@@ -11,7 +11,12 @@ memanggang biji sendiri dan menerima pesanan kopi untuk kantor.
 
 ## Cara menjalankan
 
-Syarat: **Node.js 20+** sudah terpasang.
+Syarat: **Node.js 22.5 ke atas** (disarankan Node 24). Versi itu membawa `node:sqlite`
+bawaan, sehingga proyek ini **tidak perlu memasang modul native** dan `npm install`
+berjalan cepat di Windows tanpa Visual Studio.
+
+Bila memakai Node di bawah 22.5, proyek otomatis mencoba `better-sqlite3`
+(dependency opsional) — ikuti pesan error yang muncul.
 
 ```bash
 cd KopiBotolan
@@ -154,8 +159,10 @@ KopiBotolan/
 
 ## Database
 
-Bawaan memakai **SQLite** lewat `better-sqlite3`, file di `data/kopi-botolan.sqlite`.
-Tidak perlu memasang MySQL. Tabel dibuat otomatis saat server pertama dijalankan.
+Bawaan memakai **SQLite** lewat `node:sqlite` (bawaan Node.js), file di
+`data/kopi-botolan.sqlite`. Tidak perlu memasang MySQL, dan tidak ada modul native
+yang harus dikompilasi. Tabel dibuat otomatis saat server pertama dijalankan,
+data contoh langsung diisi bila tabel layanan masih kosong.
 
 Bila mau memakai **MySQL**, ubah `.env`:
 

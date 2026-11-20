@@ -1,38 +1,40 @@
 'use strict';
 
 // Lapisan akses database. Driver bisa diganti lewat DB_DRIVER di .env:
-//   sqlite -> better-sqlite3 (dipakai bawaan proyek ini)
+//   sqlite -> node:sqlite (bawaan Node.js 22.5+, tanpa paket native sama sekali)
+//             bila tidak ada, fallback ke better-sqlite3 (dependency opsional)
 //   mysql  -> mysql2/promise
-// Antarmuka yang dipakai controller sama untuk keduanya (query(sql, params)).
+// Antarmuka yang dipakai controller sama untuk semua driver: query(sql, params).
 
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const config = require('./env');
 
-function buatSqlite() {
-  // better-sqlite3 dipasang sebagai dependency; dimuat di sini agar pesan
-  // errornya jelas bila paket belum terpasang.
-  let Database;
+function muat(modul) {
   try {
-    Database = require('better-sqlite3');
-  } catch (err) {
-    throw new Error(
-      'Paket better-sqlite3 belum terpasang. Jalankan: npm install'
-    );
+    return require(modul);
+  } catch {
+    return null;
   }
+}
+
+function bacaSkema() {
+  return fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'schema.sql'), 'utf8');
+}
+
+function buatSqliteNodeBawaan() {
+  const { DatabaseSync } = muat('node:sqlite');
+  if (!DatabaseSync) return null;
 
   fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
 
-  const db = new Database(config.dbPath);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-
-  const skema = fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'schema.sql'), 'utf8');
-  db.exec(skema);
+  const db = new DatabaseSync(config.dbPath);
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec(bacaSkema());
 
   return {
-    driver: 'sqlite',
-    // better-sqlite3: kirim semua baris sekaligus, parameter pakai ? atau nama.
+    driver: 'sqlite (node:sqlite)',
     async query(sql, params = []) {
       const stmt = db.prepare(sql);
       const s = sql.trim().toLowerCase();
@@ -41,7 +43,43 @@ function buatSqlite() {
       }
       const hasil = stmt.run(...params);
       return [
-        { insertId: Number(hasil.lastInsertRowid), affectedRows: hasil.changes },
+        { insertId: Number(hasil.lastInsertRowid), affectedRows: Number(hasil.changes) },
+        [],
+      ];
+    },
+    async tutup() {
+      db.close();
+    },
+  };
+}
+
+function buatSqlitePaket() {
+  const Database = muat('better-sqlite3');
+  if (!Database) {
+    throw new Error(
+      'SQLite tidak tersedia. Pakai Node.js 22.5 ke atas (ada node:sqlite), ' +
+        'atau pasang: npm install better-sqlite3'
+    );
+  }
+
+  fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
+
+  const db = new Database(config.dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.exec(bacaSkema());
+
+  return {
+    driver: 'sqlite (better-sqlite3)',
+    async query(sql, params = []) {
+      const stmt = db.prepare(sql);
+      const s = sql.trim().toLowerCase();
+      if (s.startsWith('select') || s.startsWith('pragma') || s.startsWith('with')) {
+        return [stmt.all(...params), []];
+      }
+      const hasil = stmt.run(...params);
+      return [
+        { insertId: Number(hasil.lastInsertRowid), affectedRows: Number(hasil.changes) },
         [],
       ];
     },
@@ -52,10 +90,8 @@ function buatSqlite() {
 }
 
 function buatMysql() {
-  let mysql;
-  try {
-    mysql = require('mysql2/promise');
-  } catch (err) {
+  const mysql = muat('mysql2/promise');
+  if (!mysql) {
     throw new Error(
       'DB_DRIVER=mysql dipilih, tetapi paket mysql2 belum terpasang. Jalankan: npm install mysql2'
     );
@@ -73,7 +109,7 @@ function buatMysql() {
   });
 
   return {
-    driver: 'mysql',
+    driver: 'mysql (mysql2)',
     async query(sql, params = []) {
       const [baris] = await pool.query(sql, params);
       return [baris, []];
@@ -84,7 +120,10 @@ function buatMysql() {
   };
 }
 
-const db = config.driver === 'mysql' ? buatMysql() : buatSqlite();
+const db =
+  config.driver === 'mysql'
+    ? buatMysql()
+    : buatSqliteNodeBawaan() || buatSqlitePaket();
 
 module.exports = db;
 module.exports.config = config;

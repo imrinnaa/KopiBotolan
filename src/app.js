@@ -107,7 +107,9 @@ async function mulai() {
 
   const server = app.listen(config.port, () => {
     console.log(`Kopi Botolan berjalan di http://localhost:${config.port}`);
-    console.log(`Database: ${db.driver} (${db.driver === 'sqlite' ? config.dbPath : config.mysql.database})`);
+    console.log(
+      `Database: ${db.driver} (${config.driver === 'mysql' ? config.mysql.database : config.dbPath})`
+    );
     console.log(`Admin: ${config.admin.user} — buka http://localhost:${config.port}/masuk.html`);
   });
 
