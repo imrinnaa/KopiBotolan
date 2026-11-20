@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kopi Botolan — Kopi peracikan tangan</title>
+  <meta name="description" content="Kopi Botolan: kedai kopi kecil di Bandung yang memanggang biji sendiri dan menerima pesanan kantor.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-dalam">
+      <a class="brand" href="/"><span class="lencana">☕</span> Kopi Botolan</a>
+      <nav class="nav">
+        <a href="/#beranda" class="aktif">Beranda</a>
+        <a href="/#tentang">Tentang Kami</a>
+        <a href="/#layanan">Layanan</a>
+        <a href="/#kontak">Kontak</a>
+        <a href="/admin.html">Admin</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="hero" id="beranda">
+    <div class="dalam">
+      <div class="eyebrow">Kedai kopi · Bandung · sejak 2019</div>
+      <h1>Kopi peracikan tangan,<br>sejinak langkah pulang.</h1>
+      <p>
+        Kami memanggang biji dua kali seminggu, menyedu satu cangkir satu cangkir,
+        dan mengantarkan pesanan kantor sebelum rapat dimulai.
+      </p>
+      <div class="baris-tombol">
+        <a class="tombol tombol-utama" href="#layanan">Lihat Layanan</a>
+        <a class="tombol tombol-garis" href="#kontak">Hubungi Kami</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bagian" id="tentang">
+    <h2>Tentang Kami</h2>
+    <p class="sub">Sejarah singkat, visi, dan misi.</p>
+    <div class="tentang">
+      <article class="sejarah">
+        <h3>Sejarah</h3>
+        <p>
+          Kopi Botolan lahir dari garasi rumah di daerah Dago, Bandung, pada 2019.
+          Awalnya hanya dua alat French press, satu mesin espresso warisan ayah,
+          dan kebiasaan berkumpul sambil mencatat rasa tiap kali mencoba biji baru.
+        </p>
+        <p>
+          Nama <em>Botolan</em> diambil dari kata orang-orang tua di sana:
+          kopi yang diseduh dalam teko, disajikan tanpa tergesa-gesa.
+          Empat tahun kemudian kami pindah ke ruko kecil, menambah dua barista,
+          dan mulai menerima pesanan kopi untuk kantor serta acara.
+        </p>
+        <p>
+          Biji tetap kami sangrai sendiri di atas kompor kecil, dan setiap pesanan
+          dicatat di buku yang sama sejak hari pertama.
+        </p>
+      </article>
+      <div class="daftar-nilai">
+        <div class="nilai">
+          <strong>Visi</strong>
+          <p>Menjadi kedai kopi kecil yang membuat orang memperlambat langkah, sekaligus membuka kelas bagi siapa pun yang ingin belajar.</p>
+        </div>
+        <div class="nilai">
+          <strong>Misi</strong>
+          <p>Menyangrai biji dari petani langsung, menyedu tanpa tergesa, dan mengajarkan kopi sebagai keterampilan yang bisa dikerjakan siapa saja.</p>
+        </div>
+        <div class="nilai">
+          <strong>Nilai</strong>
+          <p>Pelan, jujur soal biaya, dan tidak takut bilang bila sebuah biji belum layak disajikan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bagian" id="layanan">
+    <h2>Layanan Kami</h2>
+    <p class="sub">Daftar di bawah diambil langsung dari database (GET /api/layanan).</p>
+    <div class="kisi" id="daftar-layanan" aria-live="polite">
+      <div class="status-kosong">Memuat daftar layanan…</div>
+    </div>
+  </section>
+
+  <section class="bagian" id="kontak">
+    <h2>Kontak</h2>
+    <p class="sub">Kirim pesan, kami balas dalam satu hari kerja.</p>
+    <div class="kontak">
+      <div class="info-kontak">
+        <dl>
+          <dt>Alamat</dt>
+          <dd>Jl. Dago Giri No. 27, Bandung</dd>
+          <dt>Buka</dt>
+          <dd>Selasa–Minggu, 07.00–21.00 WIB</dd>
+          <dt>Telepon / WhatsApp</dt>
+          <dd>0812-3456-7890</dd>
+          <dt>Email</dt>
+          <dd>halo@kopibotolan.example</dd>
+        </dl>
+      </div>
+
+      <form id="form-kontak" class="kotak" novalidate>
+        <div class="notif" id="notif-kontak"></div>
+        <label for="nama">Nama</label>
+        <input type="text" id="nama" name="nama" maxlength="100" autocomplete="name">
+        <div class="pesan-error" data-untuk="nama"></div>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" maxlength="120" autocomplete="email">
+        <div class="pesan-error" data-untuk="email"></div>
+
+        <label for="telepon">Telepon (opsional)</label>
+        <input type="tel" id="telepon" name="telepon" maxlength="25" autocomplete="tel">
+        <div class="pesan-error" data-untuk="telepon"></div>
+
+        <label for="isi">Pesan</label>
+        <textarea id="isi" name="isi" maxlength="1000"></textarea>
+        <div class="pesan-error" data-untuk="isi"></div>
+
+        <div style="margin-top:1rem; display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
+          <button type="submit" class="tombol tombol-utama" id="tombol-kirim">Kirim Pesan</button>
+          <span class="meta" id="status-kirim" role="status"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="dalam">
+      <p class="kiri">© <span id="tahun"></span> Kopi Botolan. Proyek workshop full-stack JavaScript.</p>
+      <p>Dibuat dengan Node.js, Express.js, dan SQLite.</p>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+  <script>document.getElementById('tahun').textContent = new Date().getFullYear();</script>
+</body>
+</html>

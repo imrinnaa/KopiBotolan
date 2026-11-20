@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk Admin — Kopi Botolan</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-dalam">
+      <a class="brand" href="/"><span class="lencana">☕</span> Kopi Botolan</a>
+      <nav class="nav">
+        <a href="/">Kembali ke Situs</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="masuk-wrap">
+    <form id="form-masuk" class="kotak" novalidate>
+      <h1>Masuk Admin</h1>
+      <p class="sub">Halaman admin hanya bisa dibuka setelah masuk.</p>
+      <div class="notif" id="notif-masuk"></div>
+
+      <label for="username">Nama pengguna</label>
+      <input type="text" id="username" name="username" autocomplete="username" maxlength="50">
+
+      <label for="password">Kata sandi</label>
+      <input type="password" id="password" name="password" autocomplete="current-password">
+
+      <div style="margin-top:1rem;">
+        <button type="submit" class="tombol tombol-utama" id="tombol-masuk">Masuk</button>
+      </div>
+
+      <div class="petunjuk">
+        Kredensial bawaan ada di file <code>.env</code>:
+        <code>ADMIN_USER</code> dan <code>ADMIN_PASS</code>. Ganti sebelum dipakai sungguhan.
+      </div>
+    </form>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

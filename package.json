@@ -1,0 +1,22 @@
+{
+  "name": "kopi-botolan",
+  "version": "1.0.0",
+  "description": "Website company profile Kopi Botolan - Node.js, Express.js, dan SQLite (proyek workshop full-stack JavaScript)",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "seed": "node database/seed.js",
+    "reset": "node database/seed.js --reset",
+    "test": "node tests/checklist.test.js"
+  },
+  "keywords": ["express", "sqlite", "company-profile", "workshop"],
+  "author": "Rina Anggraeni - XI PPLG 1",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.2.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2"
+  }
+}

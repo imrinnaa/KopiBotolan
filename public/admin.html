@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Kopi Botolan</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-dalam">
+      <a class="brand" href="/"><span class="lencana">☕</span> Kopi Botolan</a>
+      <nav class="nav">
+        <a href="/">Lihat Situs</a>
+        <a href="/admin.html" class="aktif">Admin</a>
+        <button class="tombol tombol-kecil" id="tombol-keluar" type="button">Keluar</button>
+      </nav>
+    </div>
+  </div>
+
+  <main class="admin-wrap">
+    <div class="admin-head">
+      <div class="kiri">
+        <h1>Panel Admin</h1>
+        <p class="sub" id="siapa">Kelola layanan dan baca pesan pengunjung.</p>
+      </div>
+      <div class="penghitung">
+        <div><div class="angka" id="hitung-layanan">0</div><div class="label">Layanan</div></div>
+        <div><div class="angka" id="hitung-pesan">0</div><div class="label">Pesan masuk</div></div>
+        <div><div class="angka" id="hitung-belum">0</div><div class="label">Belum dibaca</div></div>
+      </div>
+    </div>
+
+    <h2 id="judul-form-layanan">Tambah Layanan Baru</h2>
+    <form id="form-layanan" class="kotak" novalidate>
+      <div class="notif" id="notif-admin"></div>
+      <div class="kisi" style="grid-template-columns:repeat(2,1fr); margin-top:0;">
+        <div>
+          <label for="nama">Nama layanan</label>
+          <input type="text" id="nama" name="nama" maxlength="120" required>
+        </div>
+        <div>
+          <label for="ikon">Ikon (espresso, botolan, coldbrew, kelas, kurir)</label>
+          <input type="text" id="ikon" name="ikon" maxlength="40" placeholder="kopi">
+        </div>
+        <div>
+          <label for="harga">Harga (Rp, opsional)</label>
+          <input type="number" id="harga" name="harga" min="0" step="500" placeholder="18000">
+        </div>
+      </div>
+      <label for="deskripsi">Deskripsi</label>
+      <textarea id="deskripsi" name="deskripsi" maxlength="600"></textarea>
+
+      <div style="margin-top:1rem; display:flex; gap:.6rem;">
+        <button type="submit" class="tombol tombol-utama" id="tombol-simpan">Simpan Layanan</button>
+        <button type="button" class="tombol tombol-garis" id="tombol-batal"
+                style="border-color:var(--garis); color:var(--coklat);">Batal</button>
+      </div>
+    </form>
+
+    <h2 style="margin-top:2.5rem;">Daftar Layanan</h2>
+    <p class="sub">Tombol Ubah dan Hapus ada di setiap baris.</p>
+    <table class="tabel">
+      <thead>
+        <tr><th>ID</th><th>Nama &amp; Deskripsi</th><th>Harga</th><th>Status</th><th>Aksi</th></tr>
+      </thead>
+      <tbody id="admin-layanan">
+        <tr><td colspan="5"><div class="status-kosong">Memuat…</div></td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:2.5rem;">Pesan Masuk</h2>
+    <table class="tabel">
+      <thead>
+        <tr><th>ID</th><th>Pengirim</th><th>Pesan</th><th>Waktu</th><th>Status</th></tr>
+      </thead>
+      <tbody id="daftar-pesan">
+        <tr><td colspan="5"><div class="status-kosong">Memuat…</div></td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    <div class="dalam">
+      <p class="kiri">Area admin — dilindungi login.</p>
+      <p>Kopi Botolan</p>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+  <script>
+    fetch('/api/auth/saya')
+      .then((r) => r.json())
+      .then((d) => {
+        const el = document.getElementById('siapa');
+        if (d.masuk) el.textContent = 'Masuk sebagai ' + d.admin.username + '.';
+      })
+      .catch(() => {});
+
+    document.getElementById('daftar-pesan').addEventListener('click', async (e) => {
+      const tombol = e.target.closest('button[data-aksi="baca"]');
+      if (!tombol) return;
+      const res = await fetch('/api/pesan/' + tombol.dataset.id + '/dibaca', { method: 'PATCH' });
+      if (res.ok) { muatPesan(); }
+    });
+  </script>
+</body>
+</html>
