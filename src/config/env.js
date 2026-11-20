@@ -1,10 +1,7 @@
 'use strict';
 
-// Pembaca file .env tanpa paket tambahan (proyek ini sengaja hanya butuh express,
-// cookie-parser, dan better-sqlite3). Kredensial database TIDAK ditulis di kode.
-
-// File .env diletakkan di akar proyek: <akar>/.env, di mana <akar> adalah folder
-// yang memuat package.json dan src/. __dirname di sini <akar>/src/config.
+// Pembaca file .env tanpa paket tambahan. Kredensial TIDAK ditulis di kode.
+// File .env ada di akar proyek: <akar>/.env, di mana <akar> memuat package.json.
 
 const fs = require('fs');
 const path = require('path');
@@ -15,8 +12,8 @@ const ENV_FILE = path.join(AKAR_PROYEK, '.env');
 function bacaEnv() {
   if (!fs.existsSync(ENV_FILE)) return;
   const baris = fs.readFileSync(ENV_FILE, 'utf8').split(/\r?\n/);
-  for (const baris_ of baris) {
-    const teks = baris_.trim();
+  for (const mentah of baris) {
+    const teks = mentah.trim();
     if (!teks || teks.startsWith('#')) continue;
     const nama = teks.slice(0, teks.indexOf('=')).trim();
     let nilai = teks.slice(teks.indexOf('=') + 1).trim();
@@ -44,9 +41,8 @@ module.exports = {
   port: Number(ambil('PORT', 3000)),
   nodeEnv: ambil('NODE_ENV', 'development'),
 
-  // --- Database ---
-  driver: ambil('DB_DRIVER', 'sqlite').toLowerCase(),
-  dbPath: path.resolve(AKAR_PROYEK, ambil('DB_PATH', './data/kopi-botolan.sqlite')),
+  // --- Database (MySQL, dipakai Prisma) ---
+  databaseUrl: ambil('DATABASE_URL', 'mysql://root:@localhost:3306/company_profile'),
   mysql: {
     host: ambil('DB_HOST', 'localhost'),
     port: Number(ambil('DB_PORT', 3306)),

@@ -208,7 +208,7 @@ async function main() {
     const env = fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8');
     assert.ok(/ADMIN_USER=/.test(env) && /ADMIN_PASS=/.test(env), '.env berisi kredensial admin');
     assert.ok(/SESSION_SECRET=/.test(env), '.env berisi rahasia sesi');
-    assert.ok(/DB_PATH=/.test(env) || /DB_HOST=/.test(env), '.env berisi kredensial database');
+    assert.ok(/DATABASE_URL=/.test(env) || /DB_HOST=/.test(env), '.env berisi kredensial database');
 
     const r = await minta('GET', '/');
     assert.ok(!String(r.body).includes('ADMIN_PASS'), 'kredensial tidak bocor di HTML');
@@ -225,22 +225,25 @@ async function main() {
   });
 
   await cek('Data tetap ada setelah server restart (database permanen)', async () => {
-    // Data di atas sudah tersimpan di file SQLite; cukup pastikan file db ada
-    // dan isinya tidak kosong. Restart sungguhan diuji manual di README.
-    const fs = require('fs');
-    const path = require('path');
-    const db = path.join(__dirname, '..', 'data', 'kopi-botolan.sqlite');
-    assert.ok(fs.existsSync(db), 'file database ada');
-    const ukuran = fs.statSync(db).size;
-    assert.ok(ukuran > 0, 'file database tidak kosong (' + ukuran + ' byte)');
+    // Data tersimpan di MySQL. Buktinya: layanan yang dikirim tadi masih ada
+    // setelah server dimatikan lalu dinyalakan lagi (uji manual di README).
+    const r = await minta('GET', '/api/layanan');
+    assert.strictEqual(r.status, 200);
+    assert.ok(r.body.length >= 3, 'data masih ada di database (' + r.body.length + ' layanan)');
   });
 
-  await cek('SQL memakai placeholder ? (tidak ada sambungan string)', async () => {
+  await cek('Database diakses lewat Prisma ORM', async () => {
     const fs = require('fs');
     const path = require('path');
-    const kode = fs.readFileSync(path.join(__dirname, '..', 'src', 'controllers', 'layanan.controller.js'), 'utf8');
-    assert.ok(!/query\(\s*[`'"]DELETE FROM layanan WHERE id = ' \+/.test(kode), 'tidak ada contoh sambungan string');
-    assert.ok(/WHERE id = \?/.test(kode), 'query memakai placeholder');
+    const akar = path.join(__dirname, '..');
+
+    const skema = fs.readFileSync(path.join(akar, 'prisma', 'schema.prisma'), 'utf8');
+    assert.ok(/provider\s*=\s*"mysql"/.test(skema), 'skema memakai mysql');
+    assert.ok(/model Layanan/.test(skema), 'ada model Layanan');
+    assert.ok(/model Pesan/.test(skema), 'ada model Pesan');
+
+    const kode = fs.readFileSync(path.join(akar, 'src', 'controllers', 'layanan.controller.js'), 'utf8');
+    assert.ok(/prisma\.layanan\./.test(kode), 'controller memakai Prisma Client');
   });
 
   console.log('\n=== Hasil ===');

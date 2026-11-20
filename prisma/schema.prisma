@@ -1,0 +1,59 @@
+// Skema Prisma untuk Kopi Botolan
+// Database: MySQL/MariaDB "company_profile"
+// Perintah: npx prisma generate  -> membuat Prisma Client
+//           npx prisma db push   -> membuat/menyesuaikan tabel di database
+//           npx prisma studio    -> membuka tampilan data di browser
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Layanan {
+  id         Int      @id @default(autoincrement())
+  nama       String   @db.VarChar(120)
+  deskripsi  String   @db.Text
+  ikon       String   @default("kopi") @db.VarChar(40)
+  harga      Int?
+  aktif      Boolean  @default(true)
+  dibuatPada DateTime @default(now()) @map("dibuat_pada")
+  diubahPada DateTime @updatedAt @map("diubah_pada")
+
+  @@map("layanan")
+}
+
+model Pesan {
+  id          Int      @id @default(autoincrement())
+  nama        String   @db.VarChar(100)
+  email       String   @db.VarChar(120)
+  telepon     String?  @db.VarChar(25)
+  isi         String   @db.Text
+  sudahDibaca Boolean  @default(false) @map("sudah_dibaca")
+  dibuatPada  DateTime @default(now()) @map("dibuat_pada")
+
+  @@map("pesan")
+}
+
+model Admin {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique @db.VarChar(50)
+  passHash   String   @map("pass_hash") @db.VarChar(200)
+  dibuatPada DateTime @default(now()) @map("dibuat_pada")
+  sesi       Sesi[]
+
+  @@map("admin")
+}
+
+model Sesi {
+  id         String   @id @default(cuid())
+  adminId    Int      @map("admin_id")
+  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  dibuatPada DateTime @default(now()) @map("dibuat_pada")
+  expiredPada DateTime @map("expired_pada")
+
+  @@map("sesi")
+}

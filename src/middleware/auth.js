@@ -1,71 +1,62 @@
 'use strict';
 
 // Autentikasi admin berbasis sesi + cookie httpOnly (poin BONUS).
-// Tidak memakai paket JWT: sesi disimpan di tabel `sesi`, cocok untuk proyek latihan.
+// Sesi disimpan di tabel `sesi` lewat Prisma, cocok untuk proyek latihan.
 
-const crypto = require('crypto');
-const db = require('../config/db');
+const prisma = require('../config/db');
 const config = require('../config/env');
 const { hashKataSandi, cocokkanKataSandi } = require('../config/kata-sandi');
 
 const NAMA_COOKIE = 'kbt_sesi';
 const KEDALUWARSA_JAM = config.admin.sesiJam || 8;
 
-function buatIdSesi() {
-  return crypto.randomBytes(24).toString('hex');
-}
-
 function kueBagus() {
-  // cookie-parser tanpa secret; kita memakai tanda tangan sendiri lewat id acak.
   return require('cookie-parser')();
 }
 
 async function siapkanAdmin() {
   // Pastikan akun admin ada dan kata sandinya cocok dengan .env.
-  // Bila admin pertama kali dibuat memakai ADMIN_PASS yang lama, hash-nya
-  // diperbarui agar selalu mengikuti nilai .env saat ini.
-  const [baris] = await db.query('SELECT * FROM admin WHERE username = ? LIMIT 1', [
-    config.admin.user,
-  ]);
+  const ada = await prisma.admin.findUnique({
+    where: { username: config.admin.user },
+  });
   const hash = config.admin.passHash
     ? config.admin.passHash
     : hashKataSandi(config.admin.pass);
 
-  if (!baris[0]) {
-    await db.query('INSERT INTO admin (username, pass_hash) VALUES (?, ?)', [
-      config.admin.user,
-      hash,
-    ]);
+  if (!ada) {
+    await prisma.admin.create({
+      data: { username: config.admin.user, passHash: hash },
+    });
     return;
   }
 
-  if (!cocokkanKataSandi(config.admin.pass, baris[0].pass_hash)) {
-    await db.query('UPDATE admin SET pass_hash = ? WHERE id = ?', [hash, baris[0].id]);
+  // Bila ADMIN_PASS di .env berganti, hash lama diperbarui.
+  if (!cocokkanKataSandi(config.admin.pass, ada.passHash)) {
+    await prisma.admin.update({ where: { id: ada.id }, data: { passHash: hash } });
   }
 }
 
 async function verifikasiKredensial(username, kataSandi) {
-  const [baris] = await db.query('SELECT * FROM admin WHERE username = ? LIMIT 1', [username]);
-  const admin = baris[0];
+  const admin = await prisma.admin.findUnique({ where: { username } });
   if (!admin) return null;
 
   const cocok = config.admin.passHash
     ? cocokkanKataSandi(kataSandi, config.admin.passHash)
-    : cocokkanKataSandi(kataSandi, admin.pass_hash);
+    : cocokkanKataSandi(kataSandi, admin.passHash);
 
   if (!cocok) return null;
   return { id: admin.id, username: admin.username };
 }
 
 async function buatSesi(res, admin) {
-  const id = buatIdSesi();
-  await db.query(
-    `INSERT INTO sesi (id, admin_id, expired_pada)
-     VALUES (?, ?, ${db.dialek.tambahJam(KEDALUWARSA_JAM)})`,
-    [id, admin.id]
-  );
+  const sesi = await prisma.sesi.create({
+    data: {
+      adminId: admin.id,
+      expiredPada: new Date(Date.now() + KEDALUWARSA_JAM * 3600 * 1000),
+    },
+  });
 
-  res.cookie(NAMA_COOKIE, id, {
+  res.cookie(NAMA_COOKIE, sesi.id, {
     httpOnly: true,
     sameSite: 'lax',
     secure: config.nodeEnv === 'production',
@@ -84,31 +75,26 @@ async function cariAdmin(req, res, next) {
     req.admin = null;
     return next();
   }
-  const [baris] = await db.query(
-    `SELECT a.id, a.username, s.expired_pada
-       FROM sesi s JOIN admin a ON a.id = s.admin_id
-      WHERE s.id = ? LIMIT 1`,
-    [idSesi]
-  );
-  const sesi = baris[0];
+
+  const sesi = await prisma.sesi.findUnique({
+    where: { id: idSesi },
+    include: { admin: true },
+  });
+
   if (!sesi) {
     res.clearCookie(NAMA_COOKIE, { path: '/' });
     req.admin = null;
     return next();
   }
 
-  const kedaluwarsa =
-    sesi.expired_pada instanceof Date
-      ? sesi.expired_pada
-      : new Date(String(sesi.expired_pada).replace(' ', 'T') + 'Z');
-  if (kedaluwarsa.getTime() < Date.now()) {
-    await db.query('DELETE FROM sesi WHERE id = ?', [idSesi]);
+  if (sesi.expiredPada.getTime() < Date.now()) {
+    await prisma.sesi.delete({ where: { id: idSesi } });
     res.clearCookie(NAMA_COOKIE, { path: '/' });
     req.admin = null;
     return next();
   }
 
-  req.admin = { id: sesi.id, username: sesi.username };
+  req.admin = { id: sesi.adminId, username: sesi.admin.username };
   next();
 }
 
@@ -124,7 +110,9 @@ function butuhAdmin(req, res, next) {
 
 async function keluar(req, res) {
   const idSesi = ambilSesi(req);
-  if (idSesi) await db.query('DELETE FROM sesi WHERE id = ?', [idSesi]);
+  if (idSesi) {
+    await prisma.sesi.deleteMany({ where: { id: idSesi } });
+  }
   res.clearCookie(NAMA_COOKIE, { path: '/' });
 }
 

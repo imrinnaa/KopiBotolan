@@ -13,16 +13,15 @@ memanggang biji sendiri dan menerima pesanan kopi untuk kantor.
 
 Syarat: **Node.js 18+**, dan **MySQL/MariaDB berjalan** (misalnya lewat XAMPP).
 Database yang dipakai bernama **`company_profile`** — seperti contoh di slide.
+Akses database memakai **Prisma ORM** (skema di `prisma/schema.prisma`).
 
 ```bash
 cd KopiBotolan
 npm install
-node database/setup-mysql.js   # buat database + tabel + data contoh (sekali saja)
-npm start
+npx prisma generate      # membuat Prisma Client (sekali saja, atau setelah skema berubah)
+npx prisma db push       # membuat tabel di database (sekali saja)
+npm start                # data contoh otomatis terisi bila masih kosong
 ```
-
-Bila MySQL belum jalan, proyek ini juga bisa memakai **SQLite** tanpa instalasi
-tambahan: set `DB_DRIVER=sqlite` di `.env`, lalu `npm start`.
 
 Lalu buka **http://localhost:3000**
 
@@ -32,7 +31,9 @@ Perintah lain:
 | --- | --- |
 | `npm start` | Menjalankan server |
 | `npm run dev` | Menjalankan server, restart otomatis saat kode berubah |
-| `node database/setup-mysql.js` | Membuat database, tabel, dan data contoh (MySQL) |
+| `npm run prisma:generate` | Membuat ulang Prisma Client |
+| `npm run prisma:push` | Menyesuaikan tabel database dengan `schema.prisma` |
+| `npm run prisma:studio` | Membuka tampilan data di browser (Prisma Studio) |
 | `npm run seed` | Mengisi ulang data contoh layanan |
 | `npm run reset` | Mengosongkan lalu mengisi ulang data contoh |
 | `npm test` | Menjalankan 22 pengujian checklist (server harus sedang berjalan) |
@@ -108,15 +109,16 @@ KopiBotolan/
 ├── .env                 ← kredensial lokal (tidak di-commit)
 ├── .env.example         ← contoh kredensial
 ├── .gitignore
+├── prisma/
+│   └── schema.prisma    ← skema database (model Layanan, Pesan, Admin, Sesi)
 ├── database/
-│   ├── schema.sql       ← tabel layanan, pesan, admin, sesi
-│   ├── seed.sql         ← data contoh
-│   └── seed.js          ← pemangkas data contoh
+│   ├── data-awal.js     ← data contoh + pengisi otomatis
+│   └── seed.js          ← npm run seed
 ├── src/
 │   ├── app.js           ← merakit server
 │   ├── config/
 │   │   ├── env.js       ← pembaca .env
-│   │   ├── db.js        ← koneksi database (SQLite / MySQL)
+│   │   ├── db.js        ← Prisma Client
 │   │   └── kata-sandi.js← hash scrypt
 │   ├── middleware/
 │   │   ├── validasi.js  ← validasi input + pesan error
@@ -158,33 +160,42 @@ KopiBotolan/
 | Kredensial database di `.env` | `.env`, `src/config/env.js` |
 | Bisa di-deploy online | lihat bagian Deploy di bawah |
 
-## Database
+## Database (Prisma ORM)
 
-Bawaan memakai **MySQL/MariaDB**. Database: **`company_profile`**, tabel:
-`layanan`, `pesan`, `admin`, `sesi`. Semua query memakai placeholder `?`.
+Database **MySQL/MariaDB** bernama **`company_profile`**, tabel: `layanan`, `pesan`,
+`admin`, `sesi`. Struktur tabel **tidak ditulis sebagai SQL**, melainkan sebagai
+skema Prisma di `prisma/schema.prisma`:
 
-Pengaturan koneksi ada di `.env`:
+```prisma
+model Layanan {
+  id         Int      @id @default(autoincrement())
+  nama       String   @db.VarChar(120)
+  deskripsi  String   @db.Text
+  ikon       String   @default("kopi") @db.VarChar(40)
+  harga      Int?
+  aktif      Boolean  @default(true)
+  dibuatPada DateTime @default(now()) @map("dibuat_pada")
+  diubahPada DateTime @updatedAt @map("diubah_pada")
+  @@map("layanan")
+}
+```
+
+Controller memanggil Prisma Client, contoh:
+`prisma.layanan.findMany()`, `prisma.layanan.create({ data: {...} })`,
+`prisma.pesan.delete({ where: { id } })`.
+
+Koneksi diatur lewat `DATABASE_URL` di `.env`:
 
 ```
-DB_DRIVER=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASS=            # kosong bila memakai XAMPP bawaan
-DB_NAME=company_profile
+DATABASE_URL="mysql://root:@localhost:3306/company_profile"
 ```
 
-Siapkan sekali saja: `node database/setup-mysql.js` (membuat database, tabel,
-dan data contoh). Bisa juga dilakukan manual di phpMyAdmin: buat database
-`company_profile`, lalu jalankan isi `database/schema.mysql.sql`.
-
-**Alternatif tanpa MySQL:** set `DB_DRIVER=sqlite` di `.env`. Data tersimpan di
-`data/kopi-botolan.sqlite`, tidak perlu server database sama sekali. Skema SQLite
-ada di `database/schema.sql`.
+Siapkan sekali saja: `npx prisma db push`. Lihat data:
+`npx prisma studio` (buka http://localhost:5555). Bisa juga lewat phpMyAdmin.
 
 ## Keamanan
 
-- Query selalu memakai placeholder `?`, bukan sambungan string.
+- Akses database lewat **Prisma Client** — nilai dikirim sebagai parameter, bukan disambung ke query.
 - Kata sandi admin disimpan sebagai hash `scrypt` dengan `timingSafeEqual`.
 - Sesi disimpan di tabel `sesi`, cookie `httpOnly` + `sameSite=lax`, kedaluwarsa 8 jam.
 - Kredensial tidak pernah ditulis di kode, HTML, atau respons API.
@@ -194,12 +205,10 @@ ada di `database/schema.sql`.
 Proyek siap dipasang di layanan Node.js biasa (Railway, Render, Fly.io, VPS).
 
 1. `npm install`
-2. Set environment variable `PORT`, `ADMIN_USER`, `ADMIN_PASS`, `SESSION_SECRET`,
-   dan `DB_DRIVER` + kredensial database di panel penyedia layanan.
-3. `npm start`
-
-Untuk SQLite di hosting, pastikan folder `data/` bisa ditulis; bila hosting bersifat
-sementara (ephemeral), sebaiknya pakai `DB_DRIVER=mysql`.
+2. `npx prisma generate` lalu `npx prisma db push`
+3. Set environment variable `PORT`, `ADMIN_USER`, `ADMIN_PASS`, `SESSION_SECRET`,
+   dan `DATABASE_URL` di panel penyedia layanan.
+4. `npm start`
 
 ## Anggota
 

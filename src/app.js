@@ -3,16 +3,17 @@
 // app.js — merakit semua bagian menjadi satu server (slide 34-35).
 // Folder public/ berisi halaman statis; API berada di server yang sama,
 // sehingga tidak perlu pengaturan CORS.
+// Database diakses lewat Prisma Client (prisma/schema.prisma).
 
 const path = require('path');
-const fs = require('fs');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 
 const config = require('./config/env');
-const db = require('./config/db');
+const prisma = require('./config/db');
 const auth = require('./middleware/auth');
 const logger = require('./middleware/logger');
+const { isiDataAwal } = require('../database/data-awal');
 
 const layananRoutes = require('./routes/layanan.routes');
 const pesanRoutes = require('./routes/pesan.routes');
@@ -54,7 +55,7 @@ app.get('/api/info', (req, res) => {
   res.json({
     nama: config.perusahaan.nama,
     tagline: config.perusahaan.tagline,
-    driver: db.driver,
+    driver: 'prisma (mysql)',
     versi: require('../package.json').version,
   });
 });
@@ -82,40 +83,27 @@ app.use((err, req, res, next) => {
 });
 
 // Isi data contoh sekali saja, saat tabel layanan masih kosong.
-// Jadi proyek langsung bisa dipakai setelah npm install && npm start.
 async function isiBilaKosong() {
-  const [baris] = await db.query('SELECT COUNT(*) AS jumlah FROM layanan');
-  if (baris[0].jumlah > 0) return;
-
-  const berkas = path.join(__dirname, '..', 'database', 'seed.sql');
-  if (!fs.existsSync(berkas)) return;
-
-  for (const perintah of fs
-    .readFileSync(berkas, 'utf8')
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean)) {
-    await db.query(perintah);
-  }
+  const jumlah = await prisma.layanan.count();
+  if (jumlah > 0) return;
+  await isiDataAwal(prisma);
   console.log('Data contoh layanan ditambahkan (npm run seed untuk mengisi ulang).');
 }
 
 async function mulai() {
   await auth.siapkanAdmin();
-  await db.query(`DELETE FROM sesi WHERE expired_pada < ${db.dialek.sekarang}`);
+  await prisma.sesi.deleteMany({ where: { expiredPada: { lt: new Date() } } });
   await isiBilaKosong();
 
   const server = app.listen(config.port, () => {
     console.log(`Kopi Botolan berjalan di http://localhost:${config.port}`);
-    console.log(
-      `Database: ${db.driver} (${config.driver === 'mysql' ? config.mysql.database : config.dbPath})`
-    );
+    console.log(`Database: prisma (mysql) — ${config.mysql.database}`);
     console.log(`Admin: ${config.admin.user} — buka http://localhost:${config.port}/masuk.html`);
   });
 
   const berhenti = async () => {
     server.close();
-    await db.tutup();
+    await prisma.$disconnect();
     process.exit(0);
   };
   process.on('SIGINT', berhenti);
