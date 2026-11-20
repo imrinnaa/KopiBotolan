@@ -18,9 +18,22 @@ function muat(modul) {
   }
 }
 
-function bacaSkema() {
-  return fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'schema.sql'), 'utf8');
+function bacaSkema(berkas) {
+  return fs.readFileSync(path.join(__dirname, '..', '..', 'database', berkas), 'utf8');
 }
+
+// Frasa SQL untuk waktu, berbeda antar database. Dipakai controller agar
+// query tetap satu bahasa di kedua driver.
+const DIALEK = {
+  sqlite: {
+    sekarang: "datetime('now','localtime')",
+    tambahJam: (jam) => `datetime('now', '+${Number(jam)} hours')`,
+  },
+  mysql: {
+    sekarang: 'NOW()',
+    tambahJam: (jam) => `DATE_ADD(NOW(), INTERVAL ${Number(jam)} HOUR)`,
+  },
+};
 
 function buatSqliteNodeBawaan() {
   const { DatabaseSync } = muat('node:sqlite');
@@ -31,10 +44,11 @@ function buatSqliteNodeBawaan() {
   const db = new DatabaseSync(config.dbPath);
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
-  db.exec(bacaSkema());
+  db.exec(bacaSkema('schema.sql'));
 
   return {
     driver: 'sqlite (node:sqlite)',
+    dialek: DIALEK.sqlite,
     async query(sql, params = []) {
       const stmt = db.prepare(sql);
       const s = sql.trim().toLowerCase();
@@ -67,10 +81,11 @@ function buatSqlitePaket() {
   const db = new Database(config.dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  db.exec(bacaSkema());
+  db.exec(bacaSkema('schema.sql'));
 
   return {
     driver: 'sqlite (better-sqlite3)',
+    dialek: DIALEK.sqlite,
     async query(sql, params = []) {
       const stmt = db.prepare(sql);
       const s = sql.trim().toLowerCase();
@@ -108,9 +123,22 @@ function buatMysql() {
     charset: 'utf8mb4',
   });
 
+  // Tabel dibuat saat koneksi pertama dipakai, jadi server langsung bisa jalan.
+  const siapkan = (async () => {
+    const skema = bacaSkema('schema.mysql.sql');
+    for (const perintah of skema
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      await pool.query(perintah);
+    }
+  })();
+
   return {
     driver: 'mysql (mysql2)',
+    dialek: DIALEK.mysql,
     async query(sql, params = []) {
+      await siapkan;
       const [baris] = await pool.query(sql, params);
       return [baris, []];
     },

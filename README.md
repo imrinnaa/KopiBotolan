@@ -11,18 +11,18 @@ memanggang biji sendiri dan menerima pesanan kopi untuk kantor.
 
 ## Cara menjalankan
 
-Syarat: **Node.js 22.5 ke atas** (disarankan Node 24). Versi itu membawa `node:sqlite`
-bawaan, sehingga proyek ini **tidak perlu memasang modul native** dan `npm install`
-berjalan cepat di Windows tanpa Visual Studio.
-
-Bila memakai Node di bawah 22.5, proyek otomatis mencoba `better-sqlite3`
-(dependency opsional) — ikuti pesan error yang muncul.
+Syarat: **Node.js 18+**, dan **MySQL/MariaDB berjalan** (misalnya lewat XAMPP).
+Database yang dipakai bernama **`company_profile`** — seperti contoh di slide.
 
 ```bash
 cd KopiBotolan
 npm install
+node database/setup-mysql.js   # buat database + tabel + data contoh (sekali saja)
 npm start
 ```
+
+Bila MySQL belum jalan, proyek ini juga bisa memakai **SQLite** tanpa instalasi
+tambahan: set `DB_DRIVER=sqlite` di `.env`, lalu `npm start`.
 
 Lalu buka **http://localhost:3000**
 
@@ -32,7 +32,8 @@ Perintah lain:
 | --- | --- |
 | `npm start` | Menjalankan server |
 | `npm run dev` | Menjalankan server, restart otomatis saat kode berubah |
-| `npm run seed` | Mengisi data contoh layanan (dijalankan otomatis saat server pertama hidup) |
+| `node database/setup-mysql.js` | Membuat database, tabel, dan data contoh (MySQL) |
+| `npm run seed` | Mengisi ulang data contoh layanan |
 | `npm run reset` | Mengosongkan lalu mengisi ulang data contoh |
 | `npm test` | Menjalankan 22 pengujian checklist (server harus sedang berjalan) |
 
@@ -159,24 +160,27 @@ KopiBotolan/
 
 ## Database
 
-Bawaan memakai **SQLite** lewat `node:sqlite` (bawaan Node.js), file di
-`data/kopi-botolan.sqlite`. Tidak perlu memasang MySQL, dan tidak ada modul native
-yang harus dikompilasi. Tabel dibuat otomatis saat server pertama dijalankan,
-data contoh langsung diisi bila tabel layanan masih kosong.
+Bawaan memakai **MySQL/MariaDB**. Database: **`company_profile`**, tabel:
+`layanan`, `pesan`, `admin`, `sesi`. Semua query memakai placeholder `?`.
 
-Bila mau memakai **MySQL**, ubah `.env`:
+Pengaturan koneksi ada di `.env`:
 
 ```
 DB_DRIVER=mysql
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
-DB_PASS=rahasiaanda
+DB_PASS=            # kosong bila memakai XAMPP bawaan
 DB_NAME=company_profile
 ```
 
-lalu buat tabelnya dengan `database/schema.sql` (skema memakai `AUTO_INCREMENT` untuk
-MySQL; jalankan `npm run seed --reset` bila perlu).
+Siapkan sekali saja: `node database/setup-mysql.js` (membuat database, tabel,
+dan data contoh). Bisa juga dilakukan manual di phpMyAdmin: buat database
+`company_profile`, lalu jalankan isi `database/schema.mysql.sql`.
+
+**Alternatif tanpa MySQL:** set `DB_DRIVER=sqlite` di `.env`. Data tersimpan di
+`data/kopi-botolan.sqlite`, tidak perlu server database sama sekali. Skema SQLite
+ada di `database/schema.sql`.
 
 ## Keamanan
 

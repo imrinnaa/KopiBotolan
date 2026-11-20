@@ -102,7 +102,7 @@ async function isiBilaKosong() {
 
 async function mulai() {
   await auth.siapkanAdmin();
-  await db.query("DELETE FROM sesi WHERE expired_pada < datetime('now')");
+  await db.query(`DELETE FROM sesi WHERE expired_pada < ${db.dialek.sekarang}`);
   await isiBilaKosong();
 
   const server = app.listen(config.port, () => {

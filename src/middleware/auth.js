@@ -59,12 +59,11 @@ async function verifikasiKredensial(username, kataSandi) {
 
 async function buatSesi(res, admin) {
   const id = buatIdSesi();
-  const expired = new Date(Date.now() + KEDALUWARSA_JAM * 3600 * 1000);
-  await db.query('INSERT INTO sesi (id, admin_id, expired_pada) VALUES (?, ?, ?)', [
-    id,
-    admin.id,
-    expired.toISOString().slice(0, 19).replace('T', ' '),
-  ]);
+  await db.query(
+    `INSERT INTO sesi (id, admin_id, expired_pada)
+     VALUES (?, ?, ${db.dialek.tambahJam(KEDALUWARSA_JAM)})`,
+    [id, admin.id]
+  );
 
   res.cookie(NAMA_COOKIE, id, {
     httpOnly: true,
@@ -98,7 +97,10 @@ async function cariAdmin(req, res, next) {
     return next();
   }
 
-  const kedaluwarsa = new Date(String(sesi.expired_pada).replace(' ', 'T') + 'Z');
+  const kedaluwarsa =
+    sesi.expired_pada instanceof Date
+      ? sesi.expired_pada
+      : new Date(String(sesi.expired_pada).replace(' ', 'T') + 'Z');
   if (kedaluwarsa.getTime() < Date.now()) {
     await db.query('DELETE FROM sesi WHERE id = ?', [idSesi]);
     res.clearCookie(NAMA_COOKIE, { path: '/' });

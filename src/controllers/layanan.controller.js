@@ -102,7 +102,7 @@ exports.ubah = async (req, res, next) => {
 
     await db.query(
       `UPDATE layanan
-          SET nama = ?, deskripsi = ?, ikon = ?, harga = ?, diubah_pada = datetime('now', 'localtime')
+          SET nama = ?, deskripsi = ?, ikon = ?, harga = ?, diubah_pada = ${db.dialek.sekarang}
         WHERE id = ?`,
       [nama, deskripsi, ikon, harga, id]
     );

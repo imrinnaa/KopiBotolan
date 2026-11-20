@@ -13,7 +13,7 @@ const db = require('../src/config/db');
 const reset = process.argv.includes('--reset');
 
 async function main() {
-  if (!fs.existsSync(config.dbPath)) {
+  if (config.driver !== 'mysql' && !fs.existsSync(config.dbPath)) {
     console.error('File database belum ada. Jalankan server dulu: npm start');
     process.exit(1);
   }

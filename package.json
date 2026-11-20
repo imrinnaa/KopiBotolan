@@ -9,14 +9,21 @@
     "dev": "node --watch src/app.js",
     "seed": "node database/seed.js",
     "reset": "node database/seed.js --reset",
+    "setup": "node database/setup-mysql.js",
     "test": "node tests/checklist.test.js"
   },
-  "keywords": ["express", "sqlite", "company-profile", "workshop"],
+  "keywords": [
+    "express",
+    "sqlite",
+    "company-profile",
+    "workshop"
+  ],
   "author": "Rina Anggraeni - XI PPLG 1",
   "license": "MIT",
   "dependencies": {
     "cookie-parser": "^1.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "mysql2": "^3.24.6"
   },
   "optionalDependencies": {
     "better-sqlite3": "^13.2.0"
