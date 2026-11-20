@@ -5,6 +5,7 @@
 // sehingga tidak perlu pengaturan CORS.
 
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 
@@ -80,9 +81,29 @@ app.use((err, req, res, next) => {
   res.status(500).json({ pesan: 'Terjadi kesalahan di server. Coba lagi sebentar lagi.' });
 });
 
+// Isi data contoh sekali saja, saat tabel layanan masih kosong.
+// Jadi proyek langsung bisa dipakai setelah npm install && npm start.
+async function isiBilaKosong() {
+  const [baris] = await db.query('SELECT COUNT(*) AS jumlah FROM layanan');
+  if (baris[0].jumlah > 0) return;
+
+  const berkas = path.join(__dirname, '..', 'database', 'seed.sql');
+  if (!fs.existsSync(berkas)) return;
+
+  for (const perintah of fs
+    .readFileSync(berkas, 'utf8')
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
+    await db.query(perintah);
+  }
+  console.log('Data contoh layanan ditambahkan (npm run seed untuk mengisi ulang).');
+}
+
 async function mulai() {
   await auth.siapkanAdmin();
   await db.query("DELETE FROM sesi WHERE expired_pada < datetime('now')");
+  await isiBilaKosong();
 
   const server = app.listen(config.port, () => {
     console.log(`Kopi Botolan berjalan di http://localhost:${config.port}`);
